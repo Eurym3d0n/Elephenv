@@ -6,7 +6,7 @@
     "type": "library",
     "homepage": "https://fox-trotte.fr",
     "readme": "README.md",
-    "time": "",
+    "time": "2026-05-29T10:41:00+00:00",
     "license": "MIT",
     "authors": [
         {
@@ -48,7 +48,8 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.0.0-dev"
+            "dev-main": "1.0-dev",
+            "v1.0.1": "1.0.1"
         }
     },
     "scripts": {
