@@ -1,0 +1,60 @@
+{
+    "version": "1.0.0",
+    "name": "eurym3d0n/elephenv",
+    "description": "A modern, strictly-typed PHP 8.2+ environment loader with fluent validation, type inference, integrity checking, and structured error rendering.",
+    "keywords": ["env", "dotenv", "environment", "configuration", "php", "typed", "validation"],
+    "type": "library",
+    "homepage": "https://fox-trotte.fr",
+    "readme": "README.md",
+    "time": "",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jessy LELIEVRE",
+            "email": "jessylelievre@outlook.fr",
+            "homepage": "https://jessylelievre.fr",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "email": "jessylelievre@outlook.fr",
+        "issues": "https://github.com/eurym3d0n/elephenv/issues",
+        "source": "https://github.com/eurym3d0n/elephenv"
+    },
+    "config": {
+        "lock": false,
+        "process-timeout": 900,
+        "platform-check": true,
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.1",
+        "phpstan/phpstan": "^2.1",
+        "squizlabs/php_codesniffer": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Elephenv\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Elephenv\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.0"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse src --level=max",
+        "cs": "phpcs src --report-file=cs-log.log",
+        "cs:fix": "phpcbf src"
+    }
+}
