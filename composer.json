@@ -1,5 +1,4 @@
 {
-    "version": "1.0.1",
     "name": "eurym3d0n/elephenv",
     "description": "A modern, strictly-typed PHP 8.2+ environment loader with fluent validation, type inference, integrity checking, and structured error rendering.",
     "keywords": ["env", "dotenv", "environment", "configuration", "php", "typed", "validation"],
@@ -48,8 +47,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.0-dev",
-            "v1.0.1": "1.0.1"
+            "dev-main": "1.0-dev"
         }
     },
     "scripts": {
