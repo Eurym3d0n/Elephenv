@@ -38,7 +38,10 @@
     "autoload": {
         "psr-4": {
             "Elephenv\\": "src/"
-        }
+        },
+        "files": [
+            "./src/functions.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -52,7 +55,7 @@
     },
     "scripts": {
         "test": "phpunit",
-        "analyse": "phpstan analyse src --level=max",
+        "ps:analyse": "phpstan analyse src --level=max",
         "cs": "phpcs src --report-file=cs-log.log",
         "cs:fix": "phpcbf src"
     }
