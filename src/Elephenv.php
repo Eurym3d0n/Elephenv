@@ -458,9 +458,12 @@ final class Elephenv
             return self::$errorRenderer;
         }
 
+        // $projecViews = getcwd() . DIRECTORY_SEPARATOR . 'views/errors';
+        $packageViews = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'views';
+
         self::$errorRenderer = ErrorRendererFactory::make(
-            viewsPath: getcwd() . DIRECTORY_SEPARATOR . 'views',
-            version: '1.0.0',
+            viewsPath: $packageViews,
+            version: '1.0.3',
         );
 
         return self::$errorRenderer;
