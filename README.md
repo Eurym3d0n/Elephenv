@@ -17,6 +17,7 @@
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Global Helper Functions](#global-helper-functions)
 - [`.env` File Syntax](#env-file-syntax)
 - [Loading Sources](#loading-sources)
 - [Type Casting](#type-casting)
@@ -132,6 +133,7 @@ environment loaders as of 2026.
 | CLI error renderer                    | Yes          | No               | No             | No                  |
 | Replaceable error renderer            | Yes          | No               | No             | No                  |
 | Singleton facade with `reset()`       | Yes          | No               | No             | No                  |
+| Global `env()` helper                 | Yes          | No               | No             | No                  |
 
 ---
 
@@ -177,6 +179,63 @@ $url = Env::get('DATABASE_URL', 'sqlite::memory:');
 
 ---
 
+## Global Helper Functions
+
+Elephenv automatically registers a set of global helper functions that expose
+the most common facade operations without the `Elephenv::` prefix. They are
+available immediately after installation with no additional configuration.
+
+```bash
+composer require eurym3d0n/elephenv
+```
+
+Each function is guarded by `function_exists()` to coexist safely with any
+framework that already defines its own implementation. The first definition
+loaded by the runtime wins.
+
+### Available helpers
+
+```php
+// Typed variable retrieval — equivalent to Elephenv::get().
+$port  = env('DB_PORT');              // 5432 (int)
+$debug = env('APP_DEBUG');            // true (bool)
+$name  = env('APP_NAME', 'default');  // with fallback
+
+// Repository presence check — equivalent to Elephenv::has().
+if (env_has('STRIPE_SECRET')) {
+    // ...
+}
+
+// Fluent EnvValue wrapper — equivalent to Elephenv::value().
+$dsn = env_value('DATABASE_URL')
+    ->required()
+    ->match('/^postgres:\/\//')
+    ->toString();
+
+// Runtime write — equivalent to Elephenv::set().
+env_set('MAINTENANCE_MODE', true);
+
+// Variable removal — equivalent to Elephenv::forget().
+env_forget('MAINTENANCE_MODE');
+
+// Full repository snapshot — equivalent to Elephenv::all().
+$config = env_all();
+```
+
+### What is not exposed as a global helper
+
+Bootstrap and infrastructure methods are intentionally excluded.
+Keeping them on `Elephenv::` preserves their semantic weight at call
+sites — seeing `Elephenv::checkIntegrity()` in a bootstrap file
+immediately signals a critical startup operation in a way that a short
+global alias would not.
+
+Excluded methods include `load()`, `loadIfExists()`, `loadMany()`,
+`loadString()`, `swap()`, `reset()`, `checkIntegrity()`,
+`setErrorRenderer()`, and `setComplexExportMode()`.
+
+---
+
 ## `.env` File Syntax
 
 Elephenv supports a clean, standard `.env` file syntax.
@@ -204,7 +263,7 @@ Variables defined without a value are resolved as `null`. Use the `empty` sentin
 for an explicit empty string.
 
 ```dotenv
-EMPTY_VAR=          # Resolved as null
+EMPTY_VAR=            # Resolved as null
 EXPLICIT_EMPTY=empty  # Resolved as '' (empty string)
 ```
 
@@ -282,7 +341,7 @@ Transform every resolved value before it is stored in the repository:
 Elephenv::load('.env', [
     'valueCallback' => static fn(string $name, mixed $value): mixed => match ($name) {
         'APP_SECRET' => str_rot13($value),
-        default => $value,
+        default      => $value,
     },
 ]);
 ```
@@ -294,17 +353,17 @@ Elephenv::load('.env', [
 By default, every string value is inspected and cast to its native PHP type
 before being stored. No configuration is required.
 
-| Raw `.env` value         | PHP type | PHP value |
-|--------------------------|:--------:|:---------:|
-| `true`, `yes`, `on`, `1` | `bool`   | `true`    |
-| `false`, `no`, `off`, `0`| `bool`   | `false`   |
-| `null`, `nil`, `none`    | `null`   | `null`    |
-| `empty`                  | `string` | `''`      |
-| `42`                     | `int`    | `42`      |
-| `-7`                     | `int`    | `-7`      |
-| `3.14`                   | `float`  | `3.14`    |
-| `1.5e3`                  | `float`  | `1500.0`  |
-| `"hello world"`          | `string` | `'hello world'` |
+| Raw `.env` value          | PHP type | PHP value       |
+|---------------------------|:--------:|:---------------:|
+| `true`, `yes`, `on`, `1`  | `bool`   | `true`          |
+| `false`, `no`, `off`, `0` | `bool`   | `false`         |
+| `null`, `nil`, `none`     | `null`   | `null`          |
+| `empty`                   | `string` | `''`            |
+| `42`                      | `int`    | `42`            |
+| `-7`                      | `int`    | `-7`            |
+| `3.14`                    | `float`  | `3.14`          |
+| `1.5e3`                   | `float`  | `1500.0`        |
+| `"hello world"`           | `string` | `'hello world'` |
 
 Casting can be disabled per load call:
 
@@ -348,7 +407,7 @@ Elephenv::swap(caster: new StrictCaster());
 Placeholders in the form `${VAR}` or `$VAR` are resolved against previously
 loaded variables. Resolution is **recursive**: if a resolved value itself
 contains placeholders, they are expanded in subsequent passes. Circular
-references (`A → B → A`) are detected and broken by returning an empty string.
+references (`A -> B -> A`) are detected and broken by returning an empty string.
 
 ```dotenv
 SCHEME=postgres
@@ -392,7 +451,7 @@ use Elephenv\Parser\Interpolator;
 use Elephenv\Loader\EnvLoader;
 
 $interpolator = new Interpolator(maxDepth: 5);
-$loader = new EnvLoader($repository, interpolator: $interpolator);
+$loader       = new EnvLoader($repository, interpolator: $interpolator);
 ```
 
 ### Cycle detection
@@ -421,16 +480,13 @@ repository after inflation so that only the nested form remains accessible.
 DB[host]=localhost
 DB[port]=5432
 DB[name]=myapp
-MATRIX=1
-MATRIX=0[10]
 ```
 
 ```php
 $env = Elephenv::load('.env');
 
-$env['DB']['host'];     // "localhost"
-$env['DB']['port'];     // 5432
-$env['MATRIX'];   // 0[10]
+$env['DB']['host']; // "localhost"
+$env['DB']['port']; // 5432
 
 Elephenv::has('DB[host]'); // false — only the inflated key is kept
 Elephenv::get('DB');       // ['host' => 'localhost', 'port' => 5432, 'name' => 'myapp']
@@ -468,9 +524,9 @@ so a single loading call reports all problems at once.
 use Elephenv\Validation\RuleSet;
 
 $rules = RuleSet::make()
-    ->isRequired()      // Value must not be null.
-    ->notEmptyString()  // Value must be a non-empty string.
-    ->match('/^https?:\/\//'); // Value must match a PCRE pattern.
+    ->isRequired()                  // Value must not be null.
+    ->notEmptyString()              // Value must be a non-empty string.
+    ->match('/^https?:\/\//');      // Value must match a PCRE pattern.
 
 Elephenv::load('.env', ['rules' => ['APP_URL' => $rules]]);
 ```
@@ -599,7 +655,7 @@ Elephenv::value('API_KEY')->applyRules($rules)->toString();
 ### Raw value access
 
 ```php
-$raw = Elephenv::value('APP_DEBUG')->raw(); // Returns the value exactly as resolved
+$raw = Elephenv::value('APP_DEBUG')->raw(); // Returns the value exactly as resolved.
 ```
 
 ### Type casting methods
@@ -724,8 +780,8 @@ use Elephenv\Renderer\ErrorRendererFactory;
 
 $renderer = ErrorRendererFactory::make(
     viewsPath: __DIR__ . '/resources/views',
-    debug: true,
-    version: '2.0.0',
+    debug:     true,
+    version:   '2.0.0',
 );
 
 Elephenv::setErrorRenderer($renderer);
@@ -776,11 +832,11 @@ Accessing the repository directly:
 $repository = Elephenv::repository();
 
 $repository->set('APP_NAME', 'Acme');
-$repository->get('APP_NAME');       // 'Acme'
-$repository->has('APP_NAME');       // true
+$repository->get('APP_NAME');   // 'Acme'
+$repository->has('APP_NAME');   // true
 $repository->forget('APP_NAME');
-$repository->all();                 // snapshot of all in-memory variables
-$repository->clear();               // removes all variables from memory and superglobals
+$repository->all();             // snapshot of all in-memory variables
+$repository->clear();           // removes all variables from memory and superglobals
 ```
 
 Writing and removing variables via the facade shortcuts:
@@ -810,17 +866,17 @@ Every major component is backed by a contract in the `Elephenv\Contracts`
 namespace. Custom implementations can be injected at the singleton level via
 `Elephenv::swap()`.
 
-| Contract                     | Default Implementation     | Purpose                                      |
-|------------------------------|----------------------------|----------------------------------------------|
-| `LoaderInterface`            | `EnvLoader`                | Parses `.env` sources and populates the repo |
-| `RepositoryInterface`        | `EnvironmentRepository`    | Stores and resolves environment variables    |
-| `CasterInterface`            | `Inferrer`                 | Detects and casts raw string values          |
-| `ArrayFlattenerInterface`    | `ArrayFlattener`           | Inflates bracket-notation keys into arrays   |
-| `IntegrityCheckerInterface`  | `IntegrityChecker`         | Compares repo against `.env.example`         |
-| `ParserInterface`            | `LineParser`               | Tokenises individual `.env` lines            |
-| `InterpolatorInterface`      | `Interpolator`             | Resolves `${VAR}` placeholders recursively   |
-| `ValidatorInterface`         | Rule classes               | Validates a single constraint                |
-| `ErrorRendererInterface`     | `ErrorRenderer`            | Renders exceptions and terminates execution  |
+| Contract                    | Default Implementation  | Purpose                                      |
+|-----------------------------|-------------------------|----------------------------------------------|
+| `LoaderInterface`           | `EnvLoader`             | Parses `.env` sources and populates the repo |
+| `RepositoryInterface`       | `EnvironmentRepository` | Stores and resolves environment variables    |
+| `CasterInterface`           | `Inferrer`              | Detects and casts raw string values          |
+| `ArrayFlattenerInterface`   | `ArrayFlattener`        | Inflates bracket-notation keys into arrays   |
+| `IntegrityCheckerInterface` | `IntegrityChecker`      | Compares repo against `.env.example`         |
+| `ParserInterface`           | `LineParser`            | Tokenises individual `.env` lines            |
+| `InterpolatorInterface`     | `Interpolator`          | Resolves `${VAR}` placeholders recursively   |
+| `ValidatorInterface`        | Rule classes            | Validates a single constraint                |
+| `ErrorRendererInterface`    | `ErrorRenderer`         | Renders exceptions and terminates execution  |
 
 Swapping multiple services at once:
 
